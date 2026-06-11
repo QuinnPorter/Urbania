@@ -11,8 +11,10 @@ import {
   selectedItem,
 } from "../state/uiState";
 import { hueToColor } from "../render/stage";
+import { shiftHeld } from "../state/uiState";
 import { StatsHud, CoverageRow } from "./StatsHud";
 import { Toolbar, ItemTray } from "./Toolbar";
+import { ToolOptions } from "./ToolOptions";
 import { CityMenu } from "./CityMenu";
 import { ShareModal } from "./ShareModal";
 import { NameCityDialog, NameNeighbourhoodDialog } from "./NameDialog";
@@ -25,7 +27,7 @@ export function App({ game }: { game: Game }) {
     () => !localStorage.getItem(FIRSTRUN_KEY),
   );
 
-  // Esc cancels pending placement / closes modals (desktop nicety).
+  // Esc cancels pending placement / closes modals; Shift forces Grid Lock.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
@@ -33,9 +35,20 @@ export function App({ game }: { game: Game }) {
         else game.tools.cancelPlacement();
       }
       if (e.key === "r" || e.key === "R") game.tools.rotateGhost();
+      if (e.key === "Shift") shiftHeld.value = true;
     };
+    const onKeyUp = (e: KeyboardEvent) => {
+      if (e.key === "Shift") shiftHeld.value = false;
+    };
+    const onBlur = () => (shiftHeld.value = false); // avoid stuck Shift on Alt-Tab
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener("keyup", onKeyUp);
+    window.addEventListener("blur", onBlur);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("keyup", onKeyUp);
+      window.removeEventListener("blur", onBlur);
+    };
   }, [game]);
 
   const pending = pendingPlacement.value;
@@ -82,6 +95,7 @@ export function App({ game }: { game: Game }) {
             <span style={{ opacity: 0.5 }}>▾</span>
           </button>
         )}
+        <ToolOptions game={game} />
         <ItemTray />
         <Toolbar />
       </div>

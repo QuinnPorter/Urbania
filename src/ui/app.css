@@ -250,6 +250,48 @@ button {
   box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.15);
 }
 
+/* ── Tool options strip (Grid Lock / zone brush) ─── */
+.tool-options {
+  display: flex;
+  gap: 6px;
+  background: var(--panel);
+  border: 2px solid var(--panel-border);
+  border-radius: 999px;
+  padding: 5px 7px;
+  box-shadow: var(--shadow);
+}
+
+.tool-options button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 800;
+  color: var(--ink);
+  border: 2px solid transparent;
+  transition: transform 0.1s ease;
+}
+
+.tool-options button:active {
+  transform: scale(0.95);
+}
+
+.tool-options button.selected {
+  border-color: var(--accent);
+  background: #fff3df;
+}
+
+.tool-options .key-hint {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--ink-soft);
+  background: #f0e9d8;
+  border-radius: 5px;
+  padding: 1px 5px;
+}
+
 .toolbar {
   display: flex;
   gap: 6px;

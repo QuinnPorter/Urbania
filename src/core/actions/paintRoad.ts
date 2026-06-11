@@ -16,6 +16,19 @@ export function placeRoadTile(city: City, x: number, y: number): boolean {
   return placeNetTile(city, city.road, city.roadMask, x, y, 1, ROAD_POLICY);
 }
 
+/** Place road on every tile of a path; notifies once if anything changed. */
+export function paintRoadPath(
+  city: City,
+  tiles: ReadonlyArray<readonly [number, number]>,
+): boolean {
+  let changed = false;
+  for (const [x, y] of tiles) {
+    if (placeRoadTile(city, x, y)) changed = true;
+  }
+  if (changed) city.notifyChanged();
+  return changed;
+}
+
 /**
  * Paint road along a stroke segment, using a 4-connected path so corners
  * connect properly. Notifies once if anything changed.
@@ -27,10 +40,5 @@ export function paintRoadStroke(
   x1: number,
   y1: number,
 ): boolean {
-  let changed = false;
-  for (const [x, y] of tileLineConnected(x0, y0, x1, y1)) {
-    if (placeRoadTile(city, x, y)) changed = true;
-  }
-  if (changed) city.notifyChanged();
-  return changed;
+  return paintRoadPath(city, tileLineConnected(x0, y0, x1, y1));
 }

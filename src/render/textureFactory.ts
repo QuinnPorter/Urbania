@@ -1,4 +1,4 @@
-import { Graphics, Renderer, Texture } from "pixi.js";
+import { Graphics, Rectangle, Renderer, Texture } from "pixi.js";
 import { ITEMS } from "../core/catalog/items";
 import type { IconId, ItemDef } from "../core/catalog/schema";
 
@@ -37,17 +37,29 @@ export function buildAtlas(renderer: Renderer): TextureAtlas {
     g.destroy();
     return tex;
   };
+  // Network variants bake with a fixed full-tile frame: tight bounds vary per
+  // variant (straights vs arcs) and would mis-align sprites placed at tile
+  // origins.
+  const bakeTile = (g: Graphics): Texture => {
+    const tex = renderer.generateTexture({
+      target: g,
+      resolution: BAKE_SCALE,
+      frame: new Rectangle(0, 0, TILE, TILE),
+    });
+    g.destroy();
+    return tex;
+  };
 
   return {
     grass: [bakeGrass(bake, 0x8fd16e), bakeGrass(bake, 0x89cc67)],
-    roads: bakeRoadVariants(bake),
+    roads: bakeRoadVariants(bakeTile),
     items: bakeItems(bake),
     zones: bakeZones(bake),
     car: bakeCar(bake),
     citizen: bakeCitizen(bake),
     cell: bakeCell(bake),
-    rails: bakeLineVariants(bake, "rail"),
-    subways: bakeLineVariants(bake, "subway"),
+    rails: bakeLineVariants(bakeTile, "rail"),
+    subways: bakeLineVariants(bakeTile, "subway"),
   };
 }
 
@@ -88,6 +100,20 @@ function bakeZones(bake: Baker): Map<number, Texture> {
   return map;
 }
 
+/**
+ * Corner masks (two adjacent arms) render as smooth quarter-circle bends.
+ * [arcCenterX, arcCenterY, startAngle, endAngle] — the arc centerline has
+ * radius TILE/2 centered on the tile corner shared by the connected edges,
+ * so its endpoints land exactly on the edge midpoints, flush with the
+ * neighbours' straight arms. Screen coords: y-down.
+ */
+const CORNER_ARCS: Record<number, [number, number, number, number]> = {
+  3: [TILE, 0, Math.PI * 0.5, Math.PI], // N+E: corner at NE
+  6: [TILE, TILE, Math.PI, Math.PI * 1.5], // E+S: corner at SE
+  12: [0, TILE, Math.PI * 1.5, Math.PI * 2], // S+W: corner at SW
+  9: [0, 0, 0, Math.PI * 0.5], // W+N: corner at NW
+};
+
 /** Chunky rounded "pill" road segments meeting at a rounded center. */
 function bakeRoadVariants(bake: Baker): Texture[] {
   const ROAD = 0x9aa0ab;
@@ -99,6 +125,25 @@ function bakeRoadVariants(bake: Baker): Texture[] {
   const variants: Texture[] = [];
   for (let mask = 0; mask < 16; mask++) {
     const g = new Graphics();
+
+    // Corner masks: a smooth quarter-circle bend instead of butted rects.
+    const arcDef = CORNER_ARCS[mask];
+    if (arcDef) {
+      const [acx, acy, a0, a1] = arcDef;
+      g.arc(acx, acy, half, a0, a1).stroke({
+        width: lane,
+        color: ROAD,
+        cap: "butt",
+      });
+      const m = (a0 + a1) / 2;
+      g.circle(acx + half * Math.cos(m), acy + half * Math.sin(m), 1.6).fill({
+        color: 0xf5f0e6,
+        alpha: 0.7,
+      });
+      variants.push(bake(g));
+      continue;
+    }
+
     const arm = (dx: number, dy: number) => {
       // Rectangle from center to the tile edge in direction (dx, dy).
       if (dx === 0) {
@@ -146,6 +191,36 @@ function bakeLineVariants(bake: Baker, style: "rail" | "subway"): Texture[] {
   const variants: Texture[] = [];
   for (let mask = 0; mask < 16; mask++) {
     const g = new Graphics();
+
+    // Corner masks: quarter-arc bend with one tie/dash at the arc midpoint.
+    const arcDef = CORNER_ARCS[mask];
+    if (arcDef) {
+      const [acx, acy, a0, a1] = arcDef;
+      g.arc(acx, acy, half, a0, a1).stroke({
+        width: lane,
+        color: 0xffffff,
+        cap: "butt",
+      });
+      const m = (a0 + a1) / 2;
+      const px = acx + half * Math.cos(m);
+      const py = acy + half * Math.sin(m);
+      if (style === "rail") {
+        // Tie: perpendicular to travel = along the radial direction.
+        const tieHalf = lane * 0.7;
+        g.moveTo(px - Math.cos(m) * tieHalf, py - Math.sin(m) * tieHalf)
+          .lineTo(px + Math.cos(m) * tieHalf, py + Math.sin(m) * tieHalf)
+          .stroke({ width: 2.4, ...detail, cap: "butt" });
+      } else {
+        // Dash: along travel = the tangent direction.
+        const dashHalf = lane * 0.35;
+        g.moveTo(px + Math.sin(m) * dashHalf, py - Math.cos(m) * dashHalf)
+          .lineTo(px - Math.sin(m) * dashHalf, py + Math.cos(m) * dashHalf)
+          .stroke({ width: 2.6, ...detail, cap: "butt" });
+      }
+      variants.push(bake(g));
+      continue;
+    }
+
     const arm = (dx: number, dy: number) => {
       if (dx === 0) {
         const y0 = dy < 0 ? 0 : half;
@@ -321,6 +396,83 @@ function drawIcon(g: Graphics, icon: IconId, cx: number, cy: number, size: numbe
       g.poly([cx - s * 0.6, cy - s * 0.3, cx, cy - s * 0.65, cx + s * 0.6, cy - s * 0.3])
         .fill(0xffffff);
       g.rect(cx - s * 0.6, cy + s * 0.3, s * 1.2, s * 0.14).fill(0xffffff);
+      break;
+    case "scales":
+      g.rect(cx - 1, cy - s * 0.5, 2, s * 0.9).fill(0xffffff); // post
+      g.rect(cx - s * 0.55, cy - s * 0.45, s * 1.1, 2.2).fill(0xffffff); // beam
+      g.circle(cx - s * 0.55, cy - s * 0.15, s * 0.16).fill(0xffffff); // pans
+      g.circle(cx + s * 0.55, cy - s * 0.15, s * 0.16).fill(0xffffff);
+      g.rect(cx - s * 0.3, cy + s * 0.4, s * 0.6, 2.4).fill(0xffffff); // base
+      break;
+    case "dome":
+      g.arc(cx, cy + s * 0.1, s * 0.55, Math.PI, Math.PI * 2).fill(0xffffff);
+      g.rect(cx - s * 0.65, cy + s * 0.1, s * 1.3, s * 0.14).fill(0xffffff);
+      g.circle(cx, cy - s * 0.5, s * 0.09).fill(0xffffff); // finial
+      break;
+    case "letter":
+      g.roundRect(cx - s * 0.55, cy - s * 0.35, s * 1.1, s * 0.7, 3).fill(0xffffff);
+      g.poly([cx - s * 0.55, cy - s * 0.35, cx, cy + s * 0.05, cx + s * 0.55, cy - s * 0.35])
+        .fill({ color: 0xc9c2b4, alpha: 0.9 }); // flap
+      break;
+    case "bars":
+      g.roundRect(cx - s * 0.55, cy - s * 0.4, s * 1.1, s * 0.8, 3)
+        .fill({ color: 0xffffff, alpha: 0.85 });
+      for (let i = -1; i <= 1; i++) {
+        g.rect(cx + i * s * 0.28 - 1.2, cy - s * 0.4, 2.4, s * 0.8).fill(0x5a5f6b);
+      }
+      break;
+    case "blocks":
+      g.rect(cx - s * 0.5, cy, s * 0.42, s * 0.42).fill(0xe05c5c);
+      g.rect(cx + s * 0.08, cy, s * 0.42, s * 0.42).fill(0x5fb8e8);
+      g.rect(cx - s * 0.21, cy - s * 0.44, s * 0.42, s * 0.42).fill(0xffd24d);
+      break;
+    case "pill":
+      g.roundRect(cx - s * 0.55, cy - s * 0.22, s * 1.1, s * 0.44, s * 0.22)
+        .fill(0xffffff);
+      g.roundRect(cx - s * 0.55, cy - s * 0.22, s * 0.55, s * 0.44, s * 0.22)
+        .fill(0xe05c5c); // red half
+      break;
+    case "heart": {
+      const r2 = s * 0.24;
+      g.circle(cx - r2 * 0.85, cy - s * 0.12, r2).fill(0xe05c5c);
+      g.circle(cx + r2 * 0.85, cy - s * 0.12, r2).fill(0xe05c5c);
+      g.poly([cx - s * 0.42, cy - s * 0.02, cx + s * 0.42, cy - s * 0.02, cx, cy + s * 0.45])
+        .fill(0xe05c5c);
+      break;
+    }
+    case "bed":
+      g.roundRect(cx - s * 0.55, cy - s * 0.12, s * 1.1, s * 0.35, 4).fill(0xffffff);
+      g.roundRect(cx - s * 0.48, cy - s * 0.22, s * 0.32, s * 0.18, 3).fill(0x9adcf0); // pillow
+      g.rect(cx - s * 0.55, cy + s * 0.23, s * 0.1, s * 0.2).fill(0xffffff); // legs
+      g.rect(cx + s * 0.45, cy + s * 0.23, s * 0.1, s * 0.2).fill(0xffffff);
+      break;
+    case "tram":
+      g.rect(cx - 1, cy - s * 0.6, 2, s * 0.22).fill(0x333344); // pantograph post
+      g.rect(cx - s * 0.3, cy - s * 0.62, s * 0.6, 2).fill(0x333344); // roof bar
+      g.roundRect(cx - s * 0.5, cy - s * 0.38, s, s * 0.66, 4).fill(0xffffff);
+      g.rect(cx - s * 0.36, cy - s * 0.24, s * 0.72, s * 0.22).fill(0x9adcf0);
+      g.circle(cx - s * 0.25, cy + s * 0.36, s * 0.1).fill(0x333344);
+      g.circle(cx + s * 0.25, cy + s * 0.36, s * 0.1).fill(0x333344);
+      break;
+    case "plane":
+      g.roundRect(cx - s * 0.6, cy - s * 0.12, s * 1.2, s * 0.24, s * 0.12)
+        .fill(0xffffff); // fuselage
+      g.poly([cx - s * 0.1, cy - s * 0.55, cx + s * 0.16, cy, cx - s * 0.1, cy + s * 0.55, cx - s * 0.32, cy])
+        .fill(0xffffff); // wings
+      g.poly([cx - s * 0.6, cy - s * 0.3, cx - s * 0.42, cy, cx - s * 0.6, cy + s * 0.06])
+        .fill(0xffffff); // tail
+      break;
+    case "film":
+      g.roundRect(cx - s * 0.55, cy - s * 0.42, s * 1.1, s * 0.84, 3).fill(0x333344);
+      for (let i = 0; i < 3; i++) {
+        const sy = cy - s * 0.3 + i * s * 0.3;
+        g.rect(cx - s * 0.46, sy, s * 0.14, s * 0.14).fill(0xffffff);
+        g.rect(cx + s * 0.32, sy, s * 0.14, s * 0.14).fill(0xffffff);
+      }
+      break;
+    case "recycle":
+      g.poly([cx, cy - s * 0.5, cx + s * 0.5, cy + s * 0.35, cx - s * 0.5, cy + s * 0.35])
+        .stroke({ width: s * 0.16, color: 0x2f7a3a, join: "round" });
       break;
   }
 }

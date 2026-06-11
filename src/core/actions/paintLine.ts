@@ -90,6 +90,22 @@ export function dissolveLine(city: City, kind: LineKind, id: number): boolean {
   return true;
 }
 
+/** Paint a line on every tile of a path; notifies once if anything changed. */
+export function paintLinePath(
+  city: City,
+  kind: LineKind,
+  tiles: ReadonlyArray<readonly [number, number]>,
+  lineId: number,
+): boolean {
+  const { cells, mask, policy } = layerFor(city, kind);
+  let changed = false;
+  for (const [x, y] of tiles) {
+    if (placeNetTile(city, cells, mask, x, y, lineId, policy)) changed = true;
+  }
+  if (changed) city.notifyChanged();
+  return changed;
+}
+
 /**
  * Paint a line along a stroke (4-connected so corners connect like a road).
  * Painting over a different line on the same network overwrites it (last wins).
@@ -103,11 +119,5 @@ export function paintLineStroke(
   y1: number,
   lineId: number,
 ): boolean {
-  const { cells, mask, policy } = layerFor(city, kind);
-  let changed = false;
-  for (const [x, y] of tileLineConnected(x0, y0, x1, y1)) {
-    if (placeNetTile(city, cells, mask, x, y, lineId, policy)) changed = true;
-  }
-  if (changed) city.notifyChanged();
-  return changed;
+  return paintLinePath(city, kind, tileLineConnected(x0, y0, x1, y1), lineId);
 }

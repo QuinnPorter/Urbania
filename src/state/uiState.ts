@@ -28,6 +28,18 @@ export const activeNeighbourhoodId = signal<number | null>(null);
 export const activeLineKind = signal<LineKind | null>(null);
 export const activeLineId = signal<number | null>(null);
 
+/** Grid Lock: drags draw a straight/L path instead of freehand. */
+export const gridLock = signal(false);
+/** Shift held (desktop) temporarily forces Grid Lock. */
+export const shiftHeld = signal(false);
+export function isGridLockActive(): boolean {
+  return gridLock.value || shiftHeld.value;
+}
+
+/** Zone painting options. */
+export const zoneBrushSize = signal<1 | 3 | 5>(1);
+export const zonePaintMode = signal<"brush" | "rect">("brush");
+
 export const heatmapLayer = signal<CoverageLayer | null>(null);
 
 export type ModalId =
@@ -50,6 +62,9 @@ export function selectItem(id: string, category: CategoryId): void {
   activeTool.value = "item";
   ghostRotation.value = 0;
   pendingPlacement.value = null;
+  // Picking a regular item drops any active transit line (chip disappears).
+  activeLineKind.value = null;
+  activeLineId.value = null;
 }
 
 export function selectTool(tool: ToolId): void {

@@ -4,7 +4,8 @@ export type CategoryId =
   | "transit"
   | "eduhealth"
   | "culture"
-  | "services";
+  | "services"
+  | "government";
 
 export type CoverageLayer = "education" | "health" | "transit" | "safety";
 
@@ -21,7 +22,19 @@ export type IconId =
   | "train"
   | "subway"
   | "fountain"
-  | "column";
+  | "column"
+  | "scales"
+  | "dome"
+  | "letter"
+  | "bars"
+  | "blocks"
+  | "pill"
+  | "heart"
+  | "bed"
+  | "tram"
+  | "plane"
+  | "film"
+  | "recycle";
 
 export interface ItemArt {
   /** Main fill color, 0xRRGGBB pastel. */

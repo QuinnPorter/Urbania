@@ -99,3 +99,34 @@ export function tileLineConnected(
   }
   return tiles;
 }
+
+/**
+ * Grid-locked L-shaped path: one straight run along the dominant axis, then
+ * at most one corner, then the other axis (pure straight when axes align).
+ * 4-connected, includes both endpoints, ties (|dx| === |dy|) go horizontal
+ * first for stable previews. Used by the Grid Lock drawing mode.
+ */
+export function tileLinePathL(
+  x0: number,
+  y0: number,
+  x1: number,
+  y1: number,
+): Array<[number, number]> {
+  const tiles: Array<[number, number]> = [[x0, y0]];
+  const xRun = (y: number) => {
+    const s = Math.sign(x1 - x0);
+    for (let i = 1; i <= Math.abs(x1 - x0); i++) tiles.push([x0 + i * s, y]);
+  };
+  const yRun = (x: number) => {
+    const s = Math.sign(y1 - y0);
+    for (let i = 1; i <= Math.abs(y1 - y0); i++) tiles.push([x, y0 + i * s]);
+  };
+  if (Math.abs(x1 - x0) >= Math.abs(y1 - y0)) {
+    xRun(y0);
+    yRun(x1);
+  } else {
+    yRun(x0);
+    xRun(y1);
+  }
+  return tiles;
+}

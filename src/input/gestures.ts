@@ -21,6 +21,11 @@ export interface GestureCallbacks {
     toY: number,
   ): void;
   onPaintEnd?(): void;
+  /**
+   * Stroke interrupted (pinch escalation / pointercancel) — discard any
+   * uncommitted preview instead of committing. Falls back to onPaintEnd.
+   */
+  onPaintCancel?(): void;
 }
 
 type State = "idle" | "pending" | "panning" | "painting" | "pinching";
@@ -162,7 +167,9 @@ export class GestureController {
   private onCancel = (e: PointerEvent): void => {
     // Browser stole the gesture (e.g. Android nav) — abort cleanly.
     this.pointers.delete(e.pointerId);
-    if (this.state === "painting") this.callbacks.onPaintEnd?.();
+    if (this.state === "painting") {
+      (this.callbacks.onPaintCancel ?? this.callbacks.onPaintEnd)?.();
+    }
     this.state = this.pointers.size >= 2 ? "pinching" : this.pointers.size === 1 ? "panning" : "idle";
   };
 
@@ -182,7 +189,7 @@ export class GestureController {
       !this.paintCommitted &&
       performance.now() - this.downTime < PINCH_GRACE_MS;
     if (this.state === "painting" && !wasEarlyPaint) {
-      this.callbacks.onPaintEnd?.();
+      (this.callbacks.onPaintCancel ?? this.callbacks.onPaintEnd)?.();
     }
     this.state = "pinching";
     const [a, b] = [...this.pointers.values()];

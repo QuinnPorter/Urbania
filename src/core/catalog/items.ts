@@ -7,6 +7,7 @@ export const CATEGORIES: CategoryDef[] = [
   { id: "eduhealth", name: "Edu & Health", emoji: "🏥" },
   { id: "culture", name: "Culture & Parks", emoji: "🌳" },
   { id: "services", name: "Services", emoji: "🚒" },
+  { id: "government", name: "Government", emoji: "🏛️" },
 ];
 
 export const ITEMS: ItemDef[] = [
@@ -82,6 +83,31 @@ export const ITEMS: ItemDef[] = [
 
   // ── Transit ───────────────────────────────────────────────────────
   {
+    id: "tram-stop",
+    name: "Tram Stop",
+    category: "transit",
+    kind: "building",
+    footprint: { w: 1, h: 1 },
+    rotatable: false,
+    requiresRoadAdjacency: true,
+    art: { base: 0xa3d9c9, accent: 0x3a8a78, icon: "tram", shape: "roundedRect" },
+    effects: { coverage: { layer: "transit", radius: 5 } },
+  },
+  {
+    id: "airport",
+    name: "Airport",
+    category: "transit",
+    kind: "building",
+    footprint: { w: 4, h: 4 },
+    rotatable: false,
+    requiresRoadAdjacency: true,
+    art: { base: 0xdfe6ee, accent: 0x7d9fd1, icon: "plane", shape: "roundedRect" },
+    effects: {
+      coverage: { layer: "transit", radius: 16 },
+      happiness: { radius: 4, delta: -1 }, // noisy neighbour
+    },
+  },
+  {
     id: "bus-stop",
     name: "Bus Stop",
     category: "transit",
@@ -116,6 +142,53 @@ export const ITEMS: ItemDef[] = [
   },
 
   // ── Education & Health ────────────────────────────────────────────
+  {
+    id: "kindergarten",
+    name: "Kindergarten",
+    category: "eduhealth",
+    kind: "building",
+    footprint: { w: 1, h: 1 },
+    rotatable: false,
+    requiresRoadAdjacency: false, // walk-up, park-like
+    art: { base: 0xffc9de, accent: 0xe87aa0, icon: "blocks", shape: "roundedRect" },
+    effects: { coverage: { layer: "education", radius: 5 } },
+  },
+  {
+    id: "library",
+    name: "Library",
+    category: "eduhealth",
+    kind: "building",
+    footprint: { w: 2, h: 2 },
+    rotatable: false,
+    requiresRoadAdjacency: true,
+    art: { base: 0xd8c8b0, accent: 0x8a6f4f, icon: "book", shape: "roundedRect" },
+    effects: {
+      coverage: { layer: "education", radius: 8 },
+      happiness: { radius: 4, delta: 1 },
+    },
+  },
+  {
+    id: "pharmacy",
+    name: "Pharmacy",
+    category: "eduhealth",
+    kind: "building",
+    footprint: { w: 1, h: 1 },
+    rotatable: false,
+    requiresRoadAdjacency: true,
+    art: { base: 0xeafaea, accent: 0x4fa85f, icon: "pill", shape: "roundedRect" },
+    effects: { coverage: { layer: "health", radius: 5 } },
+  },
+  {
+    id: "retirement-home",
+    name: "Retirement Home",
+    category: "eduhealth",
+    kind: "building",
+    footprint: { w: 2, h: 2 },
+    rotatable: false,
+    requiresRoadAdjacency: true,
+    art: { base: 0xf2e2c8, accent: 0xc9986b, icon: "heart", shape: "roundedRect" },
+    effects: { happiness: { radius: 3, delta: 1 } },
+  },
   {
     id: "school",
     name: "School",
@@ -218,7 +291,42 @@ export const ITEMS: ItemDef[] = [
     effects: { happiness: { radius: 10, delta: 2 } },
   },
 
+  // ── Culture (round 3 additions) ───────────────────────────────────
+  {
+    id: "cinema",
+    name: "Cinema",
+    category: "culture",
+    kind: "building",
+    footprint: { w: 2, h: 2 },
+    rotatable: false,
+    requiresRoadAdjacency: true,
+    art: { base: 0x8a7ab8, accent: 0xffd24d, icon: "film", shape: "roundedRect" },
+    effects: { happiness: { radius: 6, delta: 2 } },
+  },
+  {
+    id: "hotel",
+    name: "Hotel",
+    category: "culture",
+    kind: "building",
+    footprint: { w: 2, h: 2 },
+    rotatable: false,
+    requiresRoadAdjacency: true,
+    art: { base: 0xf2c4a0, accent: 0x9e6b4a, icon: "bed", shape: "roundedRect" },
+    effects: { happiness: { radius: 4, delta: 1 } },
+  },
+
   // ── Services ──────────────────────────────────────────────────────
+  {
+    id: "recycling-centre",
+    name: "Recycling Centre",
+    category: "services",
+    kind: "building",
+    footprint: { w: 2, h: 2 },
+    rotatable: false,
+    requiresRoadAdjacency: true,
+    art: { base: 0xb8d9a0, accent: 0x5a8a4a, icon: "recycle", shape: "roundedRect" },
+    effects: { happiness: { radius: 3, delta: -1 } },
+  },
   {
     id: "police",
     name: "Police Station",
@@ -240,6 +348,66 @@ export const ITEMS: ItemDef[] = [
     requiresRoadAdjacency: true,
     art: { base: 0xe07a5f, accent: 0xa33b2e, icon: "flame", shape: "roundedRect" },
     effects: { coverage: { layer: "safety", radius: 10 } },
+  },
+
+  // ── Government ────────────────────────────────────────────────────
+  {
+    id: "city-hall",
+    name: "City Hall",
+    category: "government",
+    kind: "building",
+    footprint: { w: 3, h: 3 },
+    rotatable: false,
+    requiresRoadAdjacency: true,
+    art: { base: 0xc7d3e8, accent: 0x5a6f9e, icon: "column", shape: "roundedRect" },
+    effects: { happiness: { radius: 10, delta: 2 } },
+  },
+  {
+    id: "courthouse",
+    name: "Courthouse",
+    category: "government",
+    kind: "building",
+    footprint: { w: 2, h: 2 },
+    rotatable: false,
+    requiresRoadAdjacency: true,
+    art: { base: 0xe8dcc0, accent: 0x8a7f6a, icon: "scales", shape: "roundedRect" },
+    effects: { coverage: { layer: "safety", radius: 8 } },
+  },
+  {
+    id: "parliament",
+    name: "Parliament",
+    category: "government",
+    kind: "building",
+    footprint: { w: 4, h: 3 },
+    rotatable: true,
+    requiresRoadAdjacency: true,
+    art: { base: 0xe8e4d8, accent: 0x9e8a5a, icon: "dome", shape: "roundedRect" },
+    effects: { happiness: { radius: 12, delta: 2 } },
+  },
+  {
+    id: "post-office",
+    name: "Post Office",
+    category: "government",
+    kind: "building",
+    footprint: { w: 1, h: 1 },
+    rotatable: false,
+    requiresRoadAdjacency: true,
+    art: { base: 0xe87a6b, accent: 0xfdfdfd, icon: "letter", shape: "roundedRect" },
+    effects: { happiness: { radius: 5, delta: 1 } },
+  },
+  {
+    id: "prison",
+    name: "Prison",
+    category: "government",
+    kind: "building",
+    footprint: { w: 3, h: 3 },
+    rotatable: false,
+    requiresRoadAdjacency: true,
+    art: { base: 0x9aa0ab, accent: 0x5a5f6b, icon: "bars", shape: "roundedRect" },
+    effects: {
+      coverage: { layer: "safety", radius: 12 },
+      happiness: { radius: 4, delta: -2 }, // nobody wants to live next door
+    },
   },
 ];
 

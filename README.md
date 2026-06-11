@@ -16,8 +16,9 @@ Open it on your phone via the LAN URL Vite prints — the game is touch-first (o
 
 ## How to play
 
-- **Pick a category** in the bottom toolbar (Roads, Zones, Transit, Edu & Health, Culture & Parks, Services), then an item from the tray.
-- **Roads & zones**: drag to paint. Roads auto-connect into corners, T-junctions, and crossroads.
+- **Pick a category** in the bottom toolbar (Infrastructure, Zones, Transit, Edu & Health, Culture & Parks, Services, Government), then an item from the tray.
+- **Roads & lines**: drag to paint; corners render as smooth bends. Toggle **📐 Grid Lock** (or hold Shift) to draw clean straight runs with a live preview. Train and subway lines are named and colored — pick or create one in the line picker; a plain tap on the map puts the line tool away.
+- **Zones**: paint with a 1×1/3×3/5×5 brush, or switch to **⬛ Rect** and drag corner-to-corner to fill whole blocks.
 - **Buildings**: tap to preview the ghost (green = valid, red = blocked), then ✓ to place (desktop: click places directly, `R` rotates). Most buildings must touch a road.
 - **Districts**: tap 🏷️, name it, then paint its area — the name floats over the map when zoomed out.
 - **Stats**: the top-right HUD shows population 👥, jobs 💼, and happiness. Tap a coverage pill (🎓 ❤️ 🚌 🛡️) to see that service's reach as a heatmap.

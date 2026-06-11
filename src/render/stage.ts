@@ -1,4 +1,4 @@
-import { Container, Sprite, Text, type Texture } from "pixi.js";
+import { Container, Graphics, Sprite, Text, type Texture } from "pixi.js";
 import type { City } from "../core/model/city";
 import { getItem } from "../core/catalog/items";
 import { rotatedFootprint } from "../core/actions/placeBuilding";
@@ -41,6 +41,11 @@ export class Stage {
   /** Sprites that should "pop" on next flush (newly placed building indices). */
   private pendingPop = new Set<number>();
 
+  /** Stroke-preview pool (Grid Lock path / zone rect). */
+  private previewLayer = new Container();
+  private previewPool: Sprite[] = [];
+  private previewRect: Graphics | null = null;
+
   constructor(city: City, atlas: TextureAtlas) {
     this.city = city;
     this.atlas = atlas;
@@ -57,6 +62,8 @@ export class Stage {
       this.overlayLayer,
       this.labelLayer,
     );
+    // Stroke previews live under the ghost/puffs inside the overlay layer.
+    this.overlayLayer.addChildAt(this.previewLayer, 0);
     this.buildGround();
   }
 
@@ -75,6 +82,7 @@ export class Stage {
   setAtlas(atlas: TextureAtlas): void {
     this.atlas = atlas;
     this.buildingSprites.clear();
+    this.resetPreviewPool(); // pooled sprites hold textures from the old atlas
     this.buildGround();
     this.markAllDirty();
   }
@@ -380,6 +388,68 @@ export class Stage {
       const inv = 1 / Math.max(zoom, 0.25);
       child.scale.set(Math.min(inv, 2.4));
     }
+  }
+
+  /** Preview a path of tiles (Grid Lock) with pooled, tinted cell sprites. */
+  showTilePreview(
+    tiles: ReadonlyArray<readonly [number, number]>,
+    tint: number,
+    alpha = 0.55,
+  ): void {
+    if (this.previewRect) this.previewRect.visible = false;
+    while (this.previewPool.length < tiles.length) {
+      const sprite = new Sprite(this.atlas.cell);
+      this.previewLayer.addChild(sprite);
+      this.previewPool.push(sprite);
+    }
+    for (let i = 0; i < this.previewPool.length; i++) {
+      const sprite = this.previewPool[i]!;
+      const tile = tiles[i];
+      if (tile) {
+        sprite.visible = true;
+        sprite.position.set(tile[0] * TILE, tile[1] * TILE);
+        sprite.tint = tint;
+        sprite.alpha = alpha;
+      } else {
+        sprite.visible = false;
+      }
+    }
+  }
+
+  /** Preview a zone rectangle as a single translucent Graphics. */
+  showRectPreview(
+    x0: number,
+    y0: number,
+    x1: number,
+    y1: number,
+    tint: number,
+  ): void {
+    for (const sprite of this.previewPool) sprite.visible = false;
+    if (!this.previewRect) {
+      this.previewRect = new Graphics();
+      this.previewLayer.addChild(this.previewRect);
+    }
+    const minX = Math.min(x0, x1) * TILE;
+    const minY = Math.min(y0, y1) * TILE;
+    const w = (Math.abs(x1 - x0) + 1) * TILE;
+    const h = (Math.abs(y1 - y0) + 1) * TILE;
+    this.previewRect.clear();
+    this.previewRect
+      .rect(minX, minY, w, h)
+      .fill({ color: tint, alpha: 0.25 })
+      .stroke({ color: tint, width: 2, alpha: 0.85 });
+    this.previewRect.visible = true;
+  }
+
+  clearPreview(): void {
+    for (const sprite of this.previewPool) sprite.visible = false;
+    if (this.previewRect) this.previewRect.visible = false;
+  }
+
+  private resetPreviewPool(): void {
+    for (const child of this.previewLayer.removeChildren()) child.destroy();
+    this.previewPool = [];
+    this.previewRect = null;
   }
 
   /** Ghost preview sprite management (building tool). */
